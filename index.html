@@ -458,36 +458,9 @@
     <div class="chart-card right">
       <div class="card-title">Sales by Category</div>
       <div class="card-sub">FY 2024–25 · Revenue Share</div>
-      <svg viewBox="0 0 200 170" style="max-height:170px;">
-        <defs>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <!-- Donut segments: Electronics 35%, Clothing 25%, Home 20%, Food 12%, Other 8% -->
-        <!-- cx=100, cy=85, r=60, stroke-width=28 -->
-        <!-- Circumference = 2*pi*60 = 376.99 -->
-        <!-- Electronics 35% = 131.95 offset=0 -->
-        <circle cx="100" cy="85" r="60" fill="none" stroke="#00e5ff" stroke-width="28"
-          stroke-dasharray="131.95 244.04" stroke-dashoffset="94.25" filter="url(#glow)" opacity="0.9"/>
-        <!-- Clothing 25% = 94.25 offset=-131.95 → dashoffset=94.25-131.95=-37.7 -->
-        <circle cx="100" cy="85" r="60" fill="none" stroke="#a78bfa" stroke-width="28"
-          stroke-dasharray="94.25 282.74" stroke-dashoffset="-37.7"/>
-        <!-- Home 20% = 75.4 offset=-226.2 → dashoffset=-226.2+376.99=150.79 → negate=-150.79 -->
-        <circle cx="100" cy="85" r="60" fill="none" stroke="#34d399" stroke-width="28"
-          stroke-dasharray="75.4 301.59" stroke-dashoffset="-132"/>
-        <!-- Food 12% = 45.24 offset=-301.6 → dashoffset=-207.37 -->
-        <circle cx="100" cy="85" r="60" fill="none" stroke="#fbbf24" stroke-width="28"
-          stroke-dasharray="45.24 331.75" stroke-dashoffset="-207.35"/>
-        <!-- Other 8% = 30.16 offset=-346.83 → dashoffset=-252.58 -->
-        <circle cx="100" cy="85" r="60" fill="none" stroke="#ff6b6b" stroke-width="28"
-          stroke-dasharray="30.16 346.83" stroke-dashoffset="-252.6"/>
-        <!-- Center -->
-        <circle cx="100" cy="85" r="32" fill="#12121a"/>
-        <text x="100" y="81" text-anchor="middle" fill="#e8e8f0" font-family="Syne" font-size="14" font-weight="800">₹42.8L</text>
-        <text x="100" y="95" text-anchor="middle" fill="#6b6b8a" font-family="DM Mono" font-size="8">Total Revenue</text>
-      </svg>
+      <div style="display:flex; justify-content:center; margin-bottom:8px;">
+        <canvas id="donutChart" width="180" height="180"></canvas>
+      </div>
       <div class="donut-legend">
         <div class="legend-item">
           <div class="legend-left"><div class="legend-dot" style="background:#00e5ff"></div>Electronics</div>
@@ -664,6 +637,60 @@
       el.style.opacity = '1';
     }, 300);
   });
+
+  // DONUT CHART — Canvas based (pixel perfect, no clipping issues)
+  const canvas = document.getElementById('donutChart');
+  const ctx = canvas.getContext('2d');
+  const cx = 90, cy = 90, outerR = 75, innerR = 48;
+
+  const segments = [
+    { pct: 0.35, color: '#00e5ff', label: 'Electronics' },
+    { pct: 0.25, color: '#a78bfa', label: 'Clothing' },
+    { pct: 0.20, color: '#34d399', label: 'Home' },
+    { pct: 0.12, color: '#fbbf24', label: 'Food' },
+    { pct: 0.08, color: '#ff6b6b', label: 'Others' },
+  ];
+
+  const gap = 0.03; // gap between segments in radians
+  let startAngle = -Math.PI / 2;
+
+  segments.forEach(seg => {
+    const sliceAngle = seg.pct * 2 * Math.PI - gap;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, outerR, startAngle, startAngle + sliceAngle);
+    ctx.closePath();
+
+    // Clip to donut shape
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, startAngle, startAngle + sliceAngle);
+    ctx.arc(cx, cy, innerR, startAngle + sliceAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.shadowColor = seg.color;
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.restore();
+
+    startAngle += sliceAngle + gap;
+  });
+
+  // Dark center circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR, 0, 2 * Math.PI);
+  ctx.fillStyle = '#12121a';
+  ctx.shadowBlur = 0;
+  ctx.fill();
+
+  // Center text
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e8e8f0';
+  ctx.font = 'bold 15px Syne, sans-serif';
+  ctx.fillText('₹42.8L', cx, cy - 4);
+  ctx.fillStyle = '#6b6b8a';
+  ctx.font = '9px DM Mono, monospace';
+  ctx.fillText('Total Revenue', cx, cy + 12);
 </script>
 </body>
 </html>
